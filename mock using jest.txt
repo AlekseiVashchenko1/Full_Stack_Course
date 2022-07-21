@@ -1,0 +1,155 @@
+How To Add A Mock
+You can use Jest’s built-in mocking abilities to create a fake response that imitates the dependency allowing the test to evaluate the functionality you’ve created. Let’s examine how this works in practice using the code from Dr. Sanchez’s videos on mocking as a guide.
+
+1. Insert the following code into a Create React App component:
+
+//MyComponent.js
+
+import React from ‘react’;
+
+export default function myComponent() { 
+  return (
+   <div>this is my component</div>
+  );
+}
+ 
+
+2. Update the App.js file with the following code: 
+
+//App.js
+    
+
+import React from ‘react’;
+import MyComponent from “./MyComponent”
+
+function App() {
+  Return (
+  <div className=”App”>
+    <MyComponent/>
+  <div>
+ );
+}
+
+export default App;
+3. Write your test case in your App-test.js file. 
+
+//App-test.js 
+
+import React from ‘react’;
+import { render } from ‘@testing-library/react’;
+import App from ‘./App’;
+
+//mock your component here 
+jest.mock (‘./MyComponent’, () => () => (<div>Hello, World!</div>));
+
+test (‘mocking test’, () => {
+  //test contents here 
+});
+How Does This Mock Work?
+The mocking functionality is only for the test case. It does not overwrite your component files or data. 
+The app-test.js file mocks the contents of “My Component” with “Hello, World!”
+The test confirms that the mock returns what you expect, as you can see below:
+test(‘mocking test’), () => {
+  const {container} = render(<App/>);
+  expect (container.textContent).toMatch(‘Hello, World!’);
+});
+Now, when you run this test in your console with `npm test App-test.js`, if “Hello, World!” is returned, you have a successful test.
+
+Mocking An Async Example
+Let’s look at a more complex example, based on the Jest documentation.  (Links to an external site.)
+
+In this example, you’ll mock a module that fetches user data from an API and returns a username. You’d expect request.js to return a promise and then return the username.
+
+// user.js
+
+import request from './request';
+
+export function getUserName(userID) {
+
+  return request('/users/' + userID).then(user => user.name);
+
+}
+Here user.js makes a call to the network and gets the user data. 
+
+// request.js
+
+const http = require('http');
+
+export default function request(url) {
+
+  return new Promise(resolve => {
+
+    // This is an example of an http request, for example to fetch
+
+    // user data from an API.
+
+    // This module is being mocked in __mocks__/request.js
+
+    http.get({path: url}, response => {
+
+      let data = '';
+
+      response.on('data', _data => (data += _data));
+
+      response.on('end', () => resolve(data));
+
+    });
+
+  });
+
+}
+Your test will fail if the network is unavailable. You should create mock users as well as a mock promise to return to user.js. 
+
+// __mocks__/request.js
+
+const users = {
+
+  4: {name: 'Mark'},
+
+  5: {name: 'Paul'},
+
+};
+
+export default function request(url) {
+
+  return new Promise((resolve, reject) => {
+
+    const userID = parseInt(url.substr('/users/'.length), 10);
+
+    process.nextTick(() =>
+
+      users[userID]
+
+        ? resolve(users[userID])
+
+        : reject({
+
+            error: 'User with ' + userID + ' not found.',
+
+          }),
+
+    );
+
+  });
+
+}
+Now, you can write a Jest test to check that the ‘user’ you’re returning in the promise is the one you are expecting. 
+
+// __tests__/user-test.js
+
+jest.mock('../request');
+
+
+import * as user from '../user';
+
+// The assertion for a promise must be returned.
+
+it('works with promises', () => {
+
+  expect.assertions(1);
+
+  return user.getUserName(4).then(data => expect(data).toEqual('Mark'));
+
+});
+This was a real-world example of mocks in action.
+
